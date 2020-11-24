@@ -1,5 +1,5 @@
 import React, { useState, useRef, useLayoutEffect } from 'react'
-import { containers } from '@stores'
+import { useI18n } from '@stores'
 import { BaseComponentProps } from '@models'
 import { noop } from '@lib/helper'
 import classnames from 'classnames'
@@ -8,23 +8,23 @@ import './style.scss'
 interface TagsProps extends BaseComponentProps {
     data: string[]
     onClick: (name: string) => void
-    shouldError?: (name: string) => boolean
+    errSet?: Set<string>
     select: string
     rowHeight: number
     canClick: boolean
 }
 
 export function Tags (props: TagsProps) {
-    const { className, data, onClick, select, canClick, shouldError, rowHeight: rawHeight } = props
+    const { className, data, onClick, select, canClick, errSet, rowHeight: rawHeight } = props
 
-    const { useTranslation } = containers.useI18n()
-    const { t } = useTranslation('Proxies')
+    const { translation } = useI18n()
+    const { t } = translation('Proxies')
     const [expand, setExpand] = useState(false)
     const [showExtend, setShowExtend] = useState(false)
 
-    const ulRef = useRef<HTMLUListElement>()
+    const ulRef = useRef<HTMLUListElement>(null)
     useLayoutEffect(() => {
-        setShowExtend(ulRef.current.offsetHeight > 30)
+        setShowExtend((ulRef?.current?.offsetHeight ?? 0) > 30)
     }, [])
 
     const rowHeight = expand ? 'auto' : rawHeight
@@ -36,7 +36,7 @@ export function Tags (props: TagsProps) {
 
     const tags = data
         .map(t => {
-            const tagClass = classnames({ 'tags-selected': select === t, 'can-click': canClick, error: shouldError && shouldError(t) })
+            const tagClass = classnames({ 'tags-selected': select === t, 'can-click': canClick, error: errSet?.has(t) })
             return (
                 <li className={tagClass} key={t} onClick={() => handleClick(t)}>
                     { t }

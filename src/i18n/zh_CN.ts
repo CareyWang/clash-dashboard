@@ -1,11 +1,12 @@
-export default {
+const CN = {
     SideBar: {
         Proxies: '代理',
         Overview: '总览',
         Logs: '日志',
         Rules: '规则',
         Settings: '设置',
-        Connections: '连接'
+        Connections: '连接',
+        Version: '版本'
     },
     Settings: {
         title: '设置',
@@ -17,6 +18,7 @@ export default {
             proxyMode: '代理模式',
             socks5ProxyPort: 'Socks5 代理端口',
             httpProxyPort: 'HTTP 代理端口',
+            mixedProxyPort: '混合代理端口',
             externalController: '外部控制设置'
         },
         values: {
@@ -24,7 +26,8 @@ export default {
             en: 'English',
             global: '全局',
             rules: '规则',
-            direct: '直连'
+            direct: '直连',
+            script: '脚本'
         },
         versionString: '当前 ClashX 已是最新版本：{{version}}',
         checkUpdate: '检查更新',
@@ -40,7 +43,10 @@ export default {
         title: '日志'
     },
     Rules: {
-        title: '规则'
+        title: '规则',
+        providerTitle: '规则集',
+        providerUpdateTime: '最后更新于',
+        ruleCount: '规则条数'
     },
     Connections: {
         title: '连接',
@@ -54,6 +60,9 @@ export default {
             title: '警告',
             content: '将会关闭所有连接'
         },
+        filter: {
+            all: '全部'
+        },
         columns: {
             host: '域名',
             network: '网络',
@@ -63,7 +72,8 @@ export default {
             time: '连接时间',
             speed: '速率',
             upload: '上传',
-            download: '下载'
+            download: '下载',
+            sourceIP: '来源 IP'
         }
     },
     Proxies: {
@@ -90,5 +100,11 @@ export default {
         collapseText: '收起',
         speedTestText: '测速',
         breakConnectionsText: '切换时打断包含策略组的连接'
+    },
+    Modal: {
+        ok: '确 定',
+        cancel: '取 消'
     }
 }
+
+export default CN

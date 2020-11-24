@@ -1,11 +1,12 @@
-export default {
+const EN = {
     SideBar: {
         Proxies: 'Proxies',
         Overview: 'Overview',
         Logs: 'Logs',
         Rules: 'Rules',
         Settings: 'Setting',
-        Connections: 'Connections'
+        Connections: 'Connections',
+        Version: 'Version'
     },
     Settings: {
         title: 'Settings',
@@ -17,6 +18,7 @@ export default {
             proxyMode: 'Mode',
             socks5ProxyPort: 'Socks5 proxy port',
             httpProxyPort: 'HTTP proxy port',
+            mixedProxyPort: 'Mixed proxy port',
             externalController: 'External controller'
         },
         values: {
@@ -24,7 +26,8 @@ export default {
             en: 'English',
             global: 'Global',
             rules: 'Rules',
-            direct: 'Direct'
+            direct: 'Direct',
+            script: 'Script'
         },
         versionString: 'Current ClashX is the latest version：{{version}}',
         checkUpdate: 'Check Update',
@@ -40,7 +43,10 @@ export default {
         title: 'Logs'
     },
     Rules: {
-        title: 'Rules'
+        title: 'Rules',
+        providerTitle: 'Providers',
+        providerUpdateTime: 'Last updated at',
+        ruleCount: 'Rule count'
     },
     Connections: {
         title: 'Connections',
@@ -54,6 +60,9 @@ export default {
             title: 'Warning',
             content: 'This would close all connections'
         },
+        filter: {
+            all: 'All'
+        },
         columns: {
             host: 'Host',
             network: 'Network',
@@ -63,7 +72,8 @@ export default {
             time: 'Time',
             speed: 'Speed',
             upload: 'Upload',
-            download: 'Download'
+            download: 'Download',
+            sourceIP: 'Source IP'
         }
     },
     Proxies: {
@@ -90,5 +100,11 @@ export default {
         collapseText: 'Collapse',
         speedTestText: 'Speed Test',
         breakConnectionsText: 'Close connections which include the group'
+    },
+    Modal: {
+        ok: 'Ok',
+        cancel: 'Cancel'
     }
 }
+
+export default EN

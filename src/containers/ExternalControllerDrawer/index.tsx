@@ -1,14 +1,14 @@
 import React, { useEffect } from 'react'
 import { useObject } from '@lib/hook'
 import { Modal, Input, Row, Col, Alert } from '@components'
-import { containers } from '@stores'
+import { useI18n, useAPIInfo, useIdentity } from '@stores'
 import './style.scss'
 
 export default function ExternalController () {
-    const { useTranslation } = containers.useI18n()
-    const { t } = useTranslation('Settings')
-    const { data: info, update, fetch } = containers.useAPIInfo()
-    const { unauthorized: { hide, visible } } = containers.useData()
+    const { translation } = useI18n()
+    const { t } = translation('Settings')
+    const { data: info, update, fetch } = useAPIInfo()
+    const { identity, set: setIdentity } = useIdentity()
     const [value, set] = useObject({
         hostname: '',
         port: '',
@@ -17,11 +17,11 @@ export default function ExternalController () {
 
     useEffect(() => {
         fetch()
-    }, [])
+    }, [fetch])
 
     useEffect(() => {
         set({ hostname: info.hostname, port: info.port, secret: info.secret })
-    }, [info])
+    }, [info, set])
 
     function handleOk () {
         const { hostname, port, secret } = value
@@ -30,10 +30,10 @@ export default function ExternalController () {
 
     return (
         <Modal
-            show={visible}
+            show={!identity}
             title={t('externalControllerSetting.title')}
             bodyClassName="external-controller"
-            onClose={hide}
+            onClose={() => setIdentity(true)}
             onOk={handleOk}
         >
             <Alert type="info" inside={true}>

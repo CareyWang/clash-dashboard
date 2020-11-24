@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Partial, getLocalStorageItem, to } from '@lib/helper'
+import { getLocalStorageItem, to } from '@lib/helper'
 import { isClashX, jsBridge } from '@lib/jsBridge'
 import { createAsyncSingleton } from '@lib/asyncSingleton'
 import { Log } from '@models/Log'
@@ -9,6 +9,7 @@ export interface Config {
     port: number
     'socks-port': number
     'redir-port': number
+    'mixed-port': number
     'allow-lan': boolean
     mode: string
     'log-level': string
@@ -25,23 +26,32 @@ export interface Rule {
 }
 
 export interface Proxies {
-    proxies: {
-        [key: string]: Proxy | Group
-    }
+    proxies: Record<string, Proxy | Group>
 }
 
 export interface Provider {
     name: string
     proxies: Array<Group | Proxy>
-    type: 'Proxy' | 'Rule'
+    type: 'Proxy'
     vehicleType: 'HTTP' | 'File' | 'Compatible'
     updatedAt?: string
 }
 
+export interface RuleProvider {
+    name: string
+    type: 'Rule'
+    vehicleType: 'HTTP' | 'File'
+    behavior: string
+    ruleCount: number
+    updatedAt?: string
+}
+
+export interface RuleProviders {
+    providers: Record<string, RuleProvider>
+}
+
 export interface ProxyProviders {
-    providers: {
-        [key: string]: Provider
-    }
+    providers: Record<string, Provider>
 }
 
 interface History {
@@ -85,11 +95,12 @@ export interface Connections {
     start: string
     chains: string[]
     rule: string
+    rulePayload: string
 }
 
 export async function getExternalControllerConfig () {
     if (isClashX()) {
-        const info = await jsBridge.getAPIInfo()
+        const info = await jsBridge!.getAPIInfo()
 
         return {
             hostname: info.host,
@@ -150,7 +161,7 @@ export async function getProxyProviders () {
             return (status >= 200 && status < 300) || status === 404
         }
     })
-    // compatible old version
+        // compatible old version
         .then(resp => {
             if (resp.status === 404) {
                 resp.data = { providers: {} }
@@ -159,14 +170,24 @@ export async function getProxyProviders () {
         })
 }
 
+export async function getRuleProviders () {
+    const req = await getInstance()
+    return req.get<RuleProviders>('providers/rules')
+}
+
 export async function updateProvider (name: string) {
     const req = await getInstance()
-    return req.put<void>(`providers/proxies/${name}`)
+    return req.put<void>(`providers/proxies/${encodeURIComponent(name)}`)
+}
+
+export async function updateRuleProvider (name: string) {
+    const req = await getInstance()
+    return req.put<void>(`providers/rules/${encodeURIComponent(name)}`)
 }
 
 export async function healthCheckProvider (name: string) {
     const req = await getInstance()
-    return req.get<void>(`providers/proxies/${name}/healthcheck`)
+    return req.get<void>(`providers/proxies/${encodeURIComponent(name)}/healthcheck`)
 }
 
 export async function getProxies () {
@@ -176,17 +197,17 @@ export async function getProxies () {
 
 export async function getProxy (name: string) {
     const req = await getInstance()
-    return req.get<Proxy>(`proxies/${name}`)
+    return req.get<Proxy>(`proxies/${encodeURIComponent(name)}`)
 }
 
 export async function getVersion () {
     const req = await getInstance()
-    return req.get<{ version: string }>('version')
+    return req.get<{ version: string, premium?: boolean }>('version')
 }
 
 export async function getProxyDelay (name: string) {
     const req = await getInstance()
-    return req.get<{ delay: number }>(`proxies/${name}/delay`, {
+    return req.get<{ delay: number }>(`proxies/${encodeURIComponent(name)}/delay`, {
         params: {
             timeout: 5000,
             url: 'http://www.gstatic.com/generate_204'
@@ -211,7 +232,7 @@ export async function getConnections () {
 
 export async function changeProxySelected (name: string, select: string) {
     const req = await getInstance()
-    return req.put<void>(`proxies/${name}`, { name: select })
+    return req.put<void>(`proxies/${encodeURIComponent(name)}`, { name: select })
 }
 
 export const getLogsStreamReader = createAsyncSingleton(async function () {
@@ -221,7 +242,7 @@ export const getLogsStreamReader = createAsyncSingleton(async function () {
     const version = err ? 'unkonwn version' : data.data.version
     const useWebsocket = !!version || true
 
-    const logUrl = `${location.protocol}//${externalController.hostname}:${externalController.port}/logs?level=${config['log-level']}`
+    const logUrl = `${window.location.protocol}//${externalController.hostname}:${externalController.port}/logs?level=${config['log-level']}`
     return new StreamReader<Log>({ url: logUrl, bufferLength: 200, token: externalController.secret, useWebsocket })
 })
 
@@ -231,6 +252,6 @@ export const getConnectionStreamReader = createAsyncSingleton(async function () 
     const version = err ? 'unkonwn version' : data.data.version
 
     const useWebsocket = !!version || true
-    const logUrl = `${location.protocol}//${externalController.hostname}:${externalController.port}/connections`
+    const logUrl = `${window.location.protocol}//${externalController.hostname}:${externalController.port}/connections`
     return new StreamReader<Snapshot>({ url: logUrl, bufferLength: 200, token: externalController.secret, useWebsocket })
 })

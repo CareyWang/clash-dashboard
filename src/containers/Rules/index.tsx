@@ -1,19 +1,42 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Header, Card, Row, Col } from '@components'
-import { containers } from '@stores'
+import { useI18n, useRule, useRuleProviders } from '@stores'
 import { FixedSizeList as List } from 'react-window'
 import AutoSizer from 'react-virtualized-auto-sizer'
+import useSWR from 'swr'
+import { Provider } from './Provider'
 import './style.scss'
 
-export default function Rules () {
-    const { data, fetch } = containers.useData()
-    const { useTranslation } = containers.useI18n()
-    const { t } = useTranslation('Rules')
-    const { rules } = data
+function RuleProviders () {
+    const { providers } = useRuleProviders()
+    const { translation } = useI18n()
+    const { t } = translation('Rules')
 
-    useEffect(() => {
-        fetch()
-    }, [])
+    return <>
+        {
+            providers.length !== 0 &&
+            <div className="proxies-container">
+                <Header title={t('providerTitle')} />
+                <ul className="proxies-providers-list">
+                    {
+                        providers.map(p => (
+                            <li className="proxies-providers-item" key={p.name}>
+                                <Provider provider={p} />
+                            </li>
+                        ))
+                    }
+                </ul>
+            </div>
+        }
+    </>
+}
+
+export default function Rules () {
+    const { rules, update } = useRule()
+    const { translation } = useI18n()
+    const { t } = translation('Rules')
+
+    useSWR('rules', update)
 
     function renderRuleItem ({ index, style }: { index: number, style: React.CSSProperties }) {
         const rule = rules[index]
@@ -36,6 +59,7 @@ export default function Rules () {
 
     return (
         <div className="page">
+            <RuleProviders />
             <Header title={t('title')} />
             <Card className="rules-card">
                 <AutoSizer className="rules">

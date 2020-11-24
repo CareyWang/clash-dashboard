@@ -1,53 +1,48 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
+import classnames from 'classnames'
+import capitalize from 'lodash/capitalize'
 import { Header, Card, Row, Col, Switch, ButtonSelect, ButtonSelectOptions, Input, Icon } from '@components'
-import { containers } from '@stores'
+import { useI18n, useClashXData, useAPIInfo, useGeneral, useIdentity, useVersion } from '@stores'
 import { updateConfig } from '@lib/request'
 import { useObject } from '@lib/hook'
-import { to } from '@lib/helper'
-import { isClashX, jsBridge } from '@lib/jsBridge'
+import { jsBridge } from '@lib/jsBridge'
 import { Lang } from '@i18n'
 import './style.scss'
 
 const languageOptions: ButtonSelectOptions[] = [{ label: '中文', value: 'zh_CN' }, { label: 'English', value: 'en_US' }]
 
 export default function Settings () {
-    const { data: clashXData, fetch: fetchClashXData } = containers.useClashXData()
-    const { data, fetch, unauthorized: { show } } = containers.useData()
-    const { data: apiInfo } = containers.useAPIInfo()
-    const { useTranslation, setLang, lang } = containers.useI18n()
-    const { t } = useTranslation('Settings')
+    const { premium } = useVersion()
+    const { data: clashXData, update: fetchClashXData } = useClashXData()
+    const { general, update: fetchGeneral } = useGeneral()
+    const { set: setIdentity } = useIdentity()
+    const { data: apiInfo } = useAPIInfo()
+    const { translation, setLang, lang } = useI18n()
+    const { t } = translation('Settings')
     const [info, set] = useObject({
         socks5ProxyPort: 7891,
         httpProxyPort: 7890,
-        isClashX: false
+        mixedProxyPort: 0
     })
 
     useEffect(() => {
-        fetch()
-        if (isClashX()) {
-            fetchClashXData().then(() => set('isClashX', true))
-        }
-    }, [])
-
-    useEffect(() => {
-        set('socks5ProxyPort', data.general.socksPort)
-        set('httpProxyPort', data.general.port)
-    }, [data])
+        set('socks5ProxyPort', general?.socksPort ?? 0)
+        set('httpProxyPort', general?.port ?? 0)
+        set('mixedProxyPort', general?.mixedPort ?? 0)
+    }, [general, set])
 
     async function handleProxyModeChange (mode: string) {
-        const [, err] = await to(updateConfig({ mode }))
-        if (!err) {
-            fetch()
-        }
+        await updateConfig({ mode })
+        await fetchGeneral()
     }
 
     async function handleStartAtLoginChange (state: boolean) {
-        await jsBridge.setStartAtLogin(state)
+        await jsBridge?.setStartAtLogin(state)
         fetchClashXData()
     }
 
     async function handleSetSystemProxy (state: boolean) {
-        await jsBridge.setSystemProxy(state)
+        await jsBridge?.setSystemProxy(state)
         fetchClashXData()
     }
 
@@ -56,26 +51,23 @@ export default function Settings () {
     }
 
     async function handleHttpPortSave () {
-        const [, err] = await to(updateConfig({ port: info.httpProxyPort }))
-        if (!err) {
-            await fetch()
-            set('httpProxyPort', data.general.port)
-        }
+        await updateConfig({ port: info.httpProxyPort })
+        await fetchGeneral()
     }
 
     async function handleSocksPortSave () {
-        const [, err] = await to(updateConfig({ 'socks-port': info.socks5ProxyPort }))
-        if (!err) {
-            await fetch()
-            set('socks5ProxyPort', data.general.socksPort)
-        }
+        await updateConfig({ 'socks-port': info.socks5ProxyPort })
+        await fetchGeneral()
+    }
+
+    async function handleMixedPortSave () {
+        await updateConfig({ 'mixed-port': info.mixedProxyPort })
+        await fetchGeneral()
     }
 
     async function handleAllowLanChange (state: boolean) {
-        const [, err] = await to(updateConfig({ 'allow-lan': state }))
-        if (!err) {
-            await fetch()
-        }
+        await updateConfig({ 'allow-lan': state })
+        await fetchGeneral()
     }
 
     const {
@@ -83,17 +75,23 @@ export default function Settings () {
         port: externalControllerPort
     } = apiInfo
 
-    const { allowLan, mode } = data.general
-    const {
-        startAtLogin,
-        systemProxy
-    } = clashXData
+    const { allowLan, mode } = general
 
-    const proxyModeOptions: ButtonSelectOptions[] = [
-        { label: t('values.global'), value: 'Global' },
-        { label: t('values.rules'), value: 'Rule' },
-        { label: t('values.direct'), value: 'Direct' }
-    ]
+    const startAtLogin = clashXData?.startAtLogin ?? false
+    const systemProxy = clashXData?.systemProxy ?? false
+    const isClashX = clashXData?.isClashX ?? false
+
+    const proxyModeOptions = useMemo(() => {
+        const options = [
+            { label: t('values.global'), value: 'Global' },
+            { label: t('values.rules'), value: 'Rule' },
+            { label: t('values.direct'), value: 'Direct' }
+        ]
+        if (premium) {
+            options.push({ label: t('values.script'), value: 'Script' })
+        }
+        return options
+    }, [t, premium])
 
     return (
         <div className="page">
@@ -105,7 +103,7 @@ export default function Settings () {
                             <span className="label">{t('labels.startAtLogin')}</span>
                         </Col>
                         <Col span={8} className="value-column">
-                            <Switch disabled={!info.isClashX} checked={startAtLogin} onChange={handleStartAtLoginChange} />
+                            <Switch disabled={!clashXData?.isClashX} checked={startAtLogin} onChange={handleStartAtLoginChange} />
                         </Col>
                     </Col>
                     <Col span={12}>
@@ -113,7 +111,7 @@ export default function Settings () {
                             <span className="label">{t('labels.language')}</span>
                         </Col>
                         <Col span={14} className="value-column">
-                            <ButtonSelect options={languageOptions} value={lang} onSelect={changeLanguage} />
+                            <ButtonSelect options={languageOptions} value={lang} onSelect={(lang) => changeLanguage(lang as Lang)} />
                         </Col>
                     </Col>
                 </Row>
@@ -124,7 +122,7 @@ export default function Settings () {
                         </Col>
                         <Col span={8} className="value-column">
                             <Switch
-                                disabled={!info.isClashX}
+                                disabled={!isClashX}
                                 checked={systemProxy}
                                 onChange={handleSetSystemProxy}
                             />
@@ -153,7 +151,7 @@ export default function Settings () {
                         <Col span={14} className="value-column">
                             <ButtonSelect
                                 options={proxyModeOptions}
-                                value={mode}
+                                value={capitalize(mode)}
                                 onSelect={handleProxyModeChange}
                             />
                         </Col>
@@ -164,8 +162,9 @@ export default function Settings () {
                         </Col>
                         <Col span={8}>
                             <Input
+                                disabled={isClashX}
                                 value={info.socks5ProxyPort}
-                                onChange={socks5ProxyPort => set('socks5ProxyPort', parseInt(socks5ProxyPort, 10))}
+                                onChange={socks5ProxyPort => set('socks5ProxyPort', +socks5ProxyPort)}
                                 onBlur={handleSocksPortSave}
                             />
                         </Col>
@@ -178,18 +177,36 @@ export default function Settings () {
                         </Col>
                         <Col span={8}>
                             <Input
+                                disabled={isClashX}
                                 value={info.httpProxyPort}
-                                onChange={httpProxyPort => set('httpProxyPort', parseInt(httpProxyPort, 10))}
+                                onChange={httpProxyPort => set('httpProxyPort', +httpProxyPort)}
                                 onBlur={handleHttpPortSave}
                             />
                         </Col>
                     </Col>
                     <Col span={12}>
+                        <Col span={14} offset={1}>
+                            <span className="label">{t('labels.mixedProxyPort')}</span>
+                        </Col>
+                        <Col span={8}>
+                            <Input
+                                disabled={isClashX}
+                                value={info.mixedProxyPort}
+                                onChange={mixedProxyPort => set('mixedProxyPort', +mixedProxyPort)}
+                                onBlur={handleMixedPortSave}
+                            />
+                        </Col>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col span={12}>
                         <Col span={12} offset={1}>
                             <span className="label">{t('labels.externalController')}</span>
                         </Col>
                         <Col className="external-controller" span={10}>
-                            <span className="modify-btn" onClick={show}>
+                            <span
+                                className={classnames({ 'modify-btn': !isClashX })}
+                                onClick={() => !isClashX && setIdentity(false)}>
                                 {`${externalControllerHost}:${externalControllerPort}`}
                             </span>
                         </Col>

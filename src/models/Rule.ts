@@ -1,3 +1,16 @@
+export enum RuleType {
+    Domain = 'Domain',
+    DomainSuffix = 'DomainSuffix',
+    DomainKeyword = 'DomainKeyword',
+    GeoIP = 'GeoIP',
+    IPCIDR = 'IPCIDR',
+    SrcIPCIDR = 'SrcIPCIDR',
+    SrcPort = 'SrcPort',
+    DstPort = 'DstPort',
+    MATCH = 'MATCH',
+    RuleSet = 'RuleSet'
+}
+
 export interface Rule {
 
     type?: RuleType
@@ -6,14 +19,4 @@ export interface Rule {
 
     proxy?: string // proxy or proxy group name
 
-}
-
-export enum RuleType {
-    'DOMAIN' = 'DOMAIN',
-    'DOMAIN-SUFFIX' = 'DOMAIN-SUFFIX',
-    'DOMAIN-KEYWORD' = 'DOMAIN-KEYWORD',
-    'GEOIP' = 'GEOIP',
-    'FINAL' = 'FINAL',
-    'IP-CIDR' = 'IP-CIDR',
-    'USER-AGENT' = 'USER-AGENT'
 }
